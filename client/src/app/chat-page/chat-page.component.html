@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+  </head>
+  <body>
+    <ul id="messages">
+      <li *ngFor="let msg of messages">{{ msg }}</li>
+    </ul>
+    <form id="form">
+      <input
+        id="input"
+        [(ngModel)]="inputValue"
+        autocomplete="off"
+        name="message"
+      /><button (click)="onSend()">Send</button
+      ><button (click)="onChangeName()" id="nameBtn">Change name</button>
+    </form>
+  </body>
+</html>

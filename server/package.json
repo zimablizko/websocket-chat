@@ -1,0 +1,14 @@
+{
+  "name": "wschat-server",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "server:watch": "tsc -w",
+    "server:start": "nodemon dist/server/src/index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "nodemon": "^2.0.20"
+  }
+}
