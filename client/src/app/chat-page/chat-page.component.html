@@ -1,20 +1,22 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Socket.IO chat</title>
-  </head>
-  <body>
-    <ul id="messages">
+<div id="main">
+  <div id="sidebar">
+    <h2>Users</h2>
+    <ul id="users">
+      <li *ngFor="let user of users">{{ user.name }}</li>
+    </ul>
+  </div>
+  <div id="content">
+    <ul id="messages" #messagesCont>
       <li *ngFor="let msg of messages">{{ msg }}</li>
     </ul>
-    <form id="form">
+    <form id="form" [formGroup]="msgForm">
       <input
         id="input"
-        [(ngModel)]="inputValue"
+        formControlName="messageText"
         autocomplete="off"
-        name="message"
+        name="messageText"
       /><button (click)="onSend()">Send</button
       ><button (click)="onChangeName()" id="nameBtn">Change name</button>
     </form>
-  </body>
-</html>
+  </div>
+</div>
