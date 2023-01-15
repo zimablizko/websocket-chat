@@ -1,74 +1,96 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import {
+  AfterViewChecked,
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  OnInit,
+  Output,
+  ViewChild,
+} from '@angular/core';
 import { io } from 'socket.io-client';
-import { Message } from '../../../../_common/types/message';
+import { SocketMessage, SocketMessageType } from '@common/types/message';
+import { User, UserMap } from '@common/types/user';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 @Component({
   selector: 'app-chat-page',
   templateUrl: './chat-page.component.html',
   styleUrls: ['./chat-page.component.scss'],
 })
-export class ChatPageComponent implements OnInit {
+export class ChatPageComponent implements OnInit, AfterViewChecked {
+  @ViewChild('messagesCont') messagesCont!: ElementRef;
+
+  msgForm: FormGroup = this.fb.group({
+    messageText: [''],
+  });
+
   @Input() inputValue!: string;
   @Output() inputValueChange = new EventEmitter<string>();
-  form = document.getElementById('form')!;
-
-  changeNameBtn = document.getElementById('nameBtn')!;
-  messages_container = document.getElementById('messages')!;
   socket = io('ws://localhost:3000');
-  username =
-    localStorage.getItem('socketchat_username') || this.changeUsername()!;
-  messages: String[] = [];
+  username = '';
 
-  // constructor() {}
+  messages: String[] = [];
+  users: User[] = [];
+
+  constructor(private fb: FormBuilder) {}
 
   ngOnInit(): void {
+    this.username =
+      localStorage.getItem('socketchat_username') || this.changeUsername()!;
     //connect msg send
-    const msg = this.createMessage('CONNECT_MSG', '');
-    this.socket.emit('user connected', msg);
+    const msg = this.createMessage(SocketMessageType.CONNECT_MSG, '');
+    this.socket.emit(SocketMessageType.CONNECT_MSG, msg);
 
-    this.socket.on('chat message', (msg: Message) => {
+    this.socket.on(SocketMessageType.USER_MSG, (msg: SocketMessage) => {
       this.addMessage(msg);
     });
 
-    this.socket.on('past messages', (msgs: Message[]) => {
+    this.socket.on(SocketMessageType.PAST_MSGS, (msgs: SocketMessage[]) => {
       console.log(msgs);
       for (const msg of msgs) {
         this.addMessage(msg);
       }
     });
+
+    this.socket.on(SocketMessageType.USERS_LIST, (users: User[]) => {
+      this.users = users;
+      console.log(this.users);
+    });
   }
 
   onSend() {
-    if (this.inputValue) {
-      const msg = this.createMessage('USER_MSG', this.inputValue);
-      this.socket.emit('chat message', msg);
+    const { messageText } = this.msgForm.getRawValue();
+    if (messageText) {
+      const msg = this.createMessage(SocketMessageType.USER_MSG, messageText);
+      this.socket.emit(SocketMessageType.USER_MSG, msg);
       this.addMessage(msg);
-      this.inputValue = '';
+      this.msgForm.reset();
     }
   }
 
   onChangeName() {
-    this.changeUsername();
+    this.username = this.changeUsername();
   }
 
-  addMessage(msg: Message) {
+  addMessage(msg: SocketMessage) {
     let content = '';
-    if (msg.type === 'USER_MSG')
+    if (msg.type === SocketMessageType.USER_MSG)
       content = `[${new Date(msg.createDate).toLocaleString('ru')}] ${
         msg.username
       }: ${msg.text}`;
-    else if (msg.type === 'CONNECT_MSG')
+    else if (msg.type === SocketMessageType.CONNECT_MSG)
       content = `[${new Date(msg.createDate).toLocaleString('ru')}] user ${
         msg.username
       } connected ❤️`;
-    else if (msg.type === 'DISCONNECT_MSG')
+    else if (msg.type === SocketMessageType.DISCONNECT_MSG)
       content = `[${new Date(msg.createDate).toLocaleString('ru')}] user ${
         msg.username
       } disconnected 😒`;
     this.messages.push(content);
   }
 
-  createMessage(type: string, text: string): Message {
+  createMessage(type: SocketMessageType, text: string): SocketMessage {
     return {
       type: type,
       text: text,
@@ -78,9 +100,25 @@ export class ChatPageComponent implements OnInit {
   }
 
   changeUsername() {
+    const oldName = localStorage.getItem('socketchat_username');
     const name = prompt('Enter your nickname:')!;
+    console.log(oldName);
+    if (oldName) {
+      this.socket.emit(SocketMessageType.USERNAME_CHANGE, {
+        oldUsername: oldName,
+        newUsername: name,
+      });
+    }
     localStorage.setItem('socketchat_username', name);
-    this.username = name;
-    console.log(this.username);
+    return name;
+  }
+
+  ngAfterViewChecked() {
+    try {
+      this.messagesCont.nativeElement.scrollTop =
+        this.messagesCont.nativeElement.scrollHeight;
+    } catch (err) {
+      console.error(err);
+    }
   }
 }
